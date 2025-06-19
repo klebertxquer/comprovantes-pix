@@ -38,16 +38,14 @@ def extrair_comprovantes():
 
         # Processa imagens (JPEG, PNG, etc.)
         else:
-            try:
-                imagem = Image.open(caminho)
-                texto = pytesseract.image_to_string(imagem, lang="por")
-                print(f"\n===== TEXTO EXTRAÍDO DE {arquivo.filename} =====")
-                print(texto)
-                print("===============================================\n")
-            except Exception as e:
-                print(f"[Erro imagem] {arquivo.filename}: {e}")
-                continue
-
+    try:
+        imagem = Image.open(caminho)
+        texto = pytesseract.image_to_string(imagem, lang="por")
+        print(f"\n===== TEXTO EXTRAÍDO DE {arquivo.filename} =====")
+        print(texto)
+    except Exception as e:
+        print(f"[Erro imagem] {arquivo.filename}: {e}")
+        continue
         # Extração de campos
         try:
             data = extrair_valor(texto, "Data e Hora:")
