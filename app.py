@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template, jsonify
 import os
 import pdfplumber
+from pdfplumber.utils.exceptions import PdfminerException
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -19,10 +20,14 @@ def extrair_comprovantes():
         caminho = os.path.join(UPLOAD_FOLDER, arquivo.filename)
         arquivo.save(caminho)
 
-        with pdfplumber.open(caminho) as pdf:
-            texto = ""
-            for pagina in pdf.pages:
-                texto += pagina.extract_text()
+        try:
+            with pdfplumber.open(caminho) as pdf:
+                texto = ""
+                for pagina in pdf.pages:
+                    texto += pagina.extract_text()
+        except PdfminerException as e:
+            print(f"Arquivo inválido: {arquivo.filename} — {e}")
+            continue
 
         try:
             data = extrair_valor(texto, "Data e Hora:")
@@ -40,7 +45,8 @@ def extrair_comprovantes():
                 "instituicoes": f"{inst_origem} → {inst_destino}",
                 "id": id_tx
             })
-        except:
+        except Exception as e:
+            print(f"Erro ao extrair dados: {arquivo.filename} — {e}")
             continue
 
     return jsonify(resultados)
@@ -55,4 +61,5 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
 
