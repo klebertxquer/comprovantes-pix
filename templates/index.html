@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Comprovantes PIX Automático</title>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #aaa; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    input[type="text"] { width: 100%; padding: 5px; margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+
+  <h1>Upload de Comprovantes PIX</h1>
+  <input type="file" id="upload" multiple>
+  <button onclick="enviarArquivos()">Analisar Comprovantes</button>
+
+  <table id="pixTable">
+    <thead>
+      <tr>
+        <th><input type="text" placeholder="Buscar Data" onkeyup="filterTable(0, this.value)"></th>
+        <th><input type="text" placeholder="Buscar Valor" onkeyup="filterTable(1, this.value)"></th>
+        <th><input type="text" placeholder="Buscar Pagador" onkeyup="filterTable(2, this.value)"></th>
+        <th><input type="text" placeholder="Buscar Destinatário" onkeyup="filterTable(3, this.value)"></th>
+        <th><input type="text" placeholder="Buscar Instituições" onkeyup="filterTable(4, this.value)"></th>
+        <th><input type="text" placeholder="Buscar ID Transação" onkeyup="filterTable(5, this.value)"></th>
+      </tr>
+      <tr>
+        <th>Data</th><th>Valor</th><th>Pagador</th><th>Destinatário</th><th>Instituições</th><th>ID Transação</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    function enviarArquivos() {
+      const files = document.getElementById("upload").files;
+      const formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formData.append("file", files[i]);
+      }
+
+      fetch("/extrair-comprovantes", {
+        method: "POST",
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        const tbody = document.querySelector("#pixTable tbody");
+        data.forEach(r => {
+          const row = `<tr>
+            <td>${r.data}</td>
+            <td>${r.valor}</td>
+            <td>${r.pagador}</td>
+            <td>${r.destinatario}</td>
+            <td>${r.instituicoes}</td>
+            <td>${r.id}</td>
+          </tr>`;
+          tbody.innerHTML += row;
+        });
+      });
+    }
+
+    function filterTable(colIndex, filterValue) {
+      const table = document.getElementById("pixTable");
+      const tr = table.getElementsByTagName("tr");
+      const value = filterValue.toUpperCase();
+      for (let i = 2; i < tr.length; i++) {
+        const td = tr[i].getElementsByTagName("td")[colIndex];
+        if (td) {
+          const textValue = td.textContent || td.innerText;
+          tr[i].style.display = textValue.toUpperCase().includes(value) ? "" : "none";
+        }
+      }
+    }
+  </script>
+
+</body>
+</html>
