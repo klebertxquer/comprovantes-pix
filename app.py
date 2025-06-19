@@ -46,13 +46,13 @@ def extrair_comprovantes():
 
         # Extrai campos do texto
         try:
-            data = extrair_valor(texto, "Data e Hora:")
-            valor = extrair_valor(texto, "Valor:")
-            pagador = extrair_valor(texto, "Nome:", pos=1)
-            destinatario = extrair_valor(texto, "Nome:", pos=2)
-            inst_origem = extrair_valor(texto, "Instituição:")
-            inst_destino = extrair_valor(texto, "Instituição:", pos=2)
-            id_tx = extrair_valor(texto, "ID da transação:")
+            data = extrair_valor(texto, "Efetuado em") or extrair_valor(texto, "Data e Hora:")
+            valor = extrair_valor(texto, "Valor")
+            pagador = extrair_valor(texto, "Nome", pos=1)
+            destinatario = extrair_valor(texto, "Nome", pos=2)
+            inst_origem = extrair_valor(texto, "Instituição", pos=1)
+            inst_destino = extrair_valor(texto, "Instituição", pos=2)
+            id_tx = extrair_valor(texto, "Autenticação") or extrair_valor(texto, "ID da transação")
 
             resultados.append({
                 "data": data,
