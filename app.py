@@ -1,8 +1,8 @@
 from flask import Flask, request, render_template, jsonify
-from PIL import Image
-import pytesseract
 import os
 import pdfplumber
+from PIL import Image
+import pytesseract
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -22,22 +22,17 @@ def extrair_comprovantes():
         arquivo.save(caminho)
 
         texto = ""
-
-        if arquivo.filename.lower().endswith(".pdf"):
-            try:
+        try:
+            if arquivo.filename.lower().endswith(".pdf"):
                 with pdfplumber.open(caminho) as pdf:
                     for pagina in pdf.pages:
                         texto += pagina.extract_text() or ""
-            except Exception as e:
-                print(f"[Erro PDF] {arquivo.filename}: {e}")
-                continue
-        else:
-            try:
+            else:
                 imagem = Image.open(caminho)
                 texto = pytesseract.image_to_string(imagem, lang="por")
-            except Exception as e:
-                print(f"[Erro imagem] {arquivo.filename}: {e}")
-                continue
+        except Exception as e:
+            print(f"[Erro ao abrir {arquivo.filename}]: {e}")
+            continue
 
         try:
             data = extrair_valor(texto, "Data e Hora:")
@@ -47,7 +42,6 @@ def extrair_comprovantes():
             inst_origem = extrair_valor(texto, "Instituição:")
             inst_destino = extrair_valor(texto, "Instituição:", pos=2)
             id_tx = extrair_valor(texto, "ID da transação:")
-
             resultados.append({
                 "data": data,
                 "valor": valor,
@@ -69,7 +63,5 @@ def extrair_valor(texto, chave, pos=1):
     return linhas[pos - 1].replace(chave, "").strip()
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
