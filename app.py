@@ -91,24 +91,7 @@ def limpar():
     RESULTADOS = []
     return render_template("index.html", resultados=RESULTADOS)
 
-def extrair_valor(texto, chave, pos=1):
-    linhas = texto.split('\n')
-    resultados = [l for l in linhas if chave.lower() in l.lower()]
-    print(f"[DEBUG] Buscando chave: {chave} (pos={pos}) - Encontrados: {len(resultados)}")
-    
-    if len(resultados) < pos:
-        return ""
-
-    try:
-        # Encontra a posição real no texto
-        idx = linhas.index(resultados[pos - 1])
-        if chave.lower() in linhas[idx].lower():
-            valor = linhas[idx].replace(chave, "").strip()
-            return valor if valor else (linhas[idx + 1].strip() if idx + 1 < len(linhas) else "")
-        return linhas[idx + 1].strip() if idx + 1 < len(linhas) else ""
-    except Exception as e:
-        print(f"[Erro extrair_valor] chave={chave}, erro={e}")
-        return ""
+from flask import Flask, request, render_template, jsonify, send_file
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
