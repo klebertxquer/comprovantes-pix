@@ -1,31 +1,33 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, jsonify, send_file
 from PIL import Image
 import pytesseract
 import pdfplumber
 import os
+import openpyxl
 
-# Define o caminho do idioma para o Tesseract
 os.environ["TESSDATA_PREFIX"] = "/opt/homebrew/share/"
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+RESULTADOS = []
+
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", resultados=RESULTADOS)
 
 @app.route("/extrair-comprovantes", methods=["POST"])
 def extrair_comprovantes():
     arquivos = request.files.getlist("file")
-    resultados = []
+    global RESULTADOS
+    RESULTADOS = []
 
     for arquivo in arquivos:
         caminho = os.path.join(UPLOAD_FOLDER, arquivo.filename)
         arquivo.save(caminho)
         texto = ""
 
-        # PDF
         if arquivo.filename.lower().endswith(".pdf"):
             try:
                 with pdfplumber.open(caminho) as pdf:
@@ -35,26 +37,23 @@ def extrair_comprovantes():
                 print(f"[Erro PDF] {arquivo.filename}: {e}")
                 continue
         else:
-            # Imagem (JPEG/PNG) com OCR
             try:
                 imagem = Image.open(caminho)
                 texto = pytesseract.image_to_string(imagem, lang="por")
-                print(f"\n[OCR {arquivo.filename}]\n{texto}\n")
             except Exception as e:
                 print(f"[Erro imagem] {arquivo.filename}: {e}")
                 continue
 
-        # Extrai campos do texto
         try:
-            data = extrair_valor(texto, "Efetuado em") or extrair_valor(texto, "Data e Hora:")
-            valor = extrair_valor(texto, "Valor")
-            pagador = extrair_valor(texto, "Nome", pos=1)
-            destinatario = extrair_valor(texto, "Nome", pos=2)
-            inst_origem = extrair_valor(texto, "Instituição", pos=1)
-            inst_destino = extrair_valor(texto, "Instituição", pos=2)
-            id_tx = extrair_valor(texto, "Autenticação") or extrair_valor(texto, "ID da transação")
+            data = extrair_valor(texto, "Data e Hora:")
+            valor = extrair_valor(texto, "Valor:")
+            pagador = extrair_valor(texto, "Nome:", pos=1)
+            destinatario = extrair_valor(texto, "Nome:", pos=2)
+            inst_origem = extrair_valor(texto, "Instituição:")
+            inst_destino = extrair_valor(texto, "Instituição:", pos=2)
+            id_tx = extrair_valor(texto, "ID da transação:")
 
-            resultados.append({
+            RESULTADOS.append({
                 "data": data,
                 "valor": valor,
                 "pagador": pagador,
@@ -66,17 +65,42 @@ def extrair_comprovantes():
             print(f"[Erro extração] {arquivo.filename}: {e}")
             continue
 
-    return jsonify(resultados)
+    return render_template("index.html", resultados=RESULTADOS)
+
+@app.route("/exportar-excel")
+def exportar_excel():
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["Data", "Valor", "Pagador", "Destinatário", "Instituições", "ID Transação"])
+    for item in RESULTADOS:
+        ws.append([
+            item["data"],
+            item["valor"],
+            item["pagador"],
+            item["destinatario"],
+            item["instituicoes"],
+            item["id"]
+        ])
+    caminho = "resultado_pix.xlsx"
+    wb.save(caminho)
+    return send_file(caminho, as_attachment=True)
+
+@app.route("/limpar", methods=["POST"])
+def limpar():
+    global RESULTADOS
+    RESULTADOS = []
+    return render_template("index.html", resultados=RESULTADOS)
 
 def extrair_valor(texto, chave, pos=1):
     linhas = texto.split('\n')
     resultados = [l for l in linhas if chave.lower() in l.lower()]
-    if not resultados:
+    print(f"[DEBUG] Buscando chave: {chave} (pos={pos}) - Encontrados: {len(resultados)}")
+    if len(resultados) < pos:
         return ""
     try:
         idx = linhas.index(resultados[pos - 1])
-        return linhas[idx + 1].strip()
-    except:
+        return linhas[idx + 1].strip() if idx + 1 < len(linhas) else ""
+    except Exception as e:
         return ""
 
 if __name__ == "__main__":
