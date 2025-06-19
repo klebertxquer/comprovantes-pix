@@ -1,8 +1,11 @@
 from flask import Flask, request, render_template, jsonify
-import os
-import pdfplumber
 from PIL import Image
 import pytesseract
+import os
+import pdfplumber
+
+# Define o caminho do idioma para o Tesseract
+os.environ["TESSDATA_PREFIX"] = "/opt/homebrew/share/"
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -22,17 +25,22 @@ def extrair_comprovantes():
         arquivo.save(caminho)
 
         texto = ""
-        try:
-            if arquivo.filename.lower().endswith(".pdf"):
+
+        if arquivo.filename.lower().endswith(".pdf"):
+            try:
                 with pdfplumber.open(caminho) as pdf:
                     for pagina in pdf.pages:
                         texto += pagina.extract_text() or ""
-            else:
+            except Exception as e:
+                print(f"[Erro PDF] {arquivo.filename}: {e}")
+                continue
+        else:
+            try:
                 imagem = Image.open(caminho)
                 texto = pytesseract.image_to_string(imagem, lang="por")
-        except Exception as e:
-            print(f"[Erro ao abrir {arquivo.filename}]: {e}")
-            continue
+            except Exception as e:
+                print(f"[Erro imagem] {arquivo.filename}: {e}")
+                continue
 
         try:
             data = extrair_valor(texto, "Data e Hora:")
@@ -42,6 +50,7 @@ def extrair_comprovantes():
             inst_origem = extrair_valor(texto, "Instituição:")
             inst_destino = extrair_valor(texto, "Instituição:", pos=2)
             id_tx = extrair_valor(texto, "ID da transação:")
+
             resultados.append({
                 "data": data,
                 "valor": valor,
