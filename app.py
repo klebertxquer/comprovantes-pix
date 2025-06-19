@@ -69,10 +69,15 @@ def extrair_comprovantes():
     return jsonify(resultados)
 
 def extrair_valor(texto, chave, pos=1):
-    linhas = [l for l in texto.split('\n') if chave in l]
-    if not linhas:
+    linhas = texto.split('\n')
+    resultados = [l for l in linhas if chave.lower() in l.lower()]
+    if not resultados:
         return ""
-    return linhas[pos - 1].replace(chave, "").strip()
+    try:
+        idx = linhas.index(resultados[pos - 1])
+        return linhas[idx + 1].strip()
+    except:
+        return ""
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
