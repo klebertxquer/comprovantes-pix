@@ -16,6 +16,7 @@
   <h1>Upload de Comprovantes PIX</h1>
   <input type="file" id="upload" multiple>
   <button onclick="enviarArquivos()">Analisar Comprovantes</button>
+  <button onclick="exportarExcel()">Exportar para Excel</button>
 
   <table id="pixTable">
     <thead>
@@ -49,6 +50,7 @@
       .then(res => res.json())
       .then(data => {
         const tbody = document.querySelector("#pixTable tbody");
+        tbody.innerHTML = "";
         data.forEach(r => {
           const row = `<tr>
             <td>${r.data}</td>
@@ -74,6 +76,24 @@
           tr[i].style.display = textValue.toUpperCase().includes(value) ? "" : "none";
         }
       }
+    }
+
+    function exportarExcel() {
+      const tabela = document.getElementById("pixTable");
+      let csv = "";
+      for (let row of tabela.rows) {
+        let cols = [];
+        for (let cell of row.cells) {
+          cols.push(`"${cell.innerText.replace(/"/g, '""')}"`);
+        }
+        csv += cols.join(",") + "\n";
+      }
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "comprovantes_pix.csv";
+      link.click();
     }
   </script>
 
