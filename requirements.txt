@@ -1,4 +1,6 @@
-flask
-pdfplumber
+Flask
 pytesseract
-Pillow
+pillow
+pdfplumber
+pandas
+openpyxl
