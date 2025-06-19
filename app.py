@@ -4,7 +4,7 @@ import pytesseract
 import os
 import pdfplumber
 
-# Define o caminho de dados do Tesseract (necessário para lang="por")
+# Define o caminho dos dados de idioma do Tesseract
 os.environ["TESSDATA_PREFIX"] = "/opt/homebrew/share/"
 
 app = Flask(__name__)
@@ -47,15 +47,15 @@ def extrair_comprovantes():
                 print(f"[Erro imagem] {arquivo.filename}: {e}")
                 continue
 
-        # Extração de campos
+        # Extração de campos com base no texto visível da imagem
         try:
-            data = extrair_valor(texto, "Data e Hora:")
-            valor = extrair_valor(texto, "Valor:")
-            pagador = extrair_valor(texto, "Nome:", pos=1)
-            destinatario = extrair_valor(texto, "Nome:", pos=2)
-            inst_origem = extrair_valor(texto, "Instituição:")
-            inst_destino = extrair_valor(texto, "Instituição:", pos=2)
-            id_tx = extrair_valor(texto, "ID da transação:")
+            valor = extrair_valor(texto, "Valor", pos=1)
+            data = extrair_valor(texto, "Efetuado em", pos=1)
+            pagador = extrair_valor(texto, "QUEM PAGOU", pos=1)
+            inst_origem = extrair_valor(texto, "QUEM PAGOU", pos=2)
+            destinatario = extrair_valor(texto, "QUEM RECEBEU", pos=1)
+            inst_destino = extrair_valor(texto, "QUEM RECEBEU", pos=2)
+            id_tx = extrair_valor(texto, "Autenticação", pos=1)
 
             resultados.append({
                 "data": data,
@@ -73,10 +73,13 @@ def extrair_comprovantes():
     return jsonify(resultados)
 
 def extrair_valor(texto, chave, pos=1):
-    linhas = [l for l in texto.split('\n') if chave in l]
-    if not linhas:
-        return ""
-    return linhas[pos - 1].replace(chave, "").strip()
+    """Procura o valor relacionado a um campo específico, buscando n linhas abaixo se necessário"""
+    linhas = texto.split('\n')
+    for i, linha in enumerate(linhas):
+        if chave in linha:
+            if i + pos < len(linhas):
+                return linhas[i + pos].strip()
+    return ""
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
