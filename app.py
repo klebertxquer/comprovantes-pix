@@ -21,26 +21,27 @@ def extrair_comprovantes():
     for arquivo in arquivos:
         caminho = os.path.join(UPLOAD_FOLDER, arquivo.filename)
         arquivo.save(caminho)
+
         texto = ""
 
-        ext = os.path.splitext(arquivo.filename.lower())[1]
-        try:
-            if ext == ".pdf":
+        if arquivo.filename.lower().endswith(".pdf"):
+            try:
                 with pdfplumber.open(caminho) as pdf:
                     for pagina in pdf.pages:
-                        texto += pagina.extract_text()
-            elif ext in [".jpg", ".jpeg", ".png"]:
-                image = Image.open(caminho)
-                texto = pytesseract.image_to_string(image, lang="por")
-            else:
-                print(f"[Ignorado] Formato não suportado: {arquivo.filename}")
+                        texto += pagina.extract_text() or ""
+            except PdfminerException as e:
+                print(f"[Ignorado PDF] {arquivo.filename}: {e}")
                 continue
-        except PdfminerException as e:
-            print(f"[Ignorado PDF inválido] {arquivo.filename}: {e}")
-            continue
-        except Exception as e:
-            print(f"[Erro ao abrir arquivo] {arquivo.filename}: {e}")
-            continue
+            except Exception as e:
+                print(f"[Erro desconhecido PDF] {arquivo.filename}: {e}")
+                continue
+        else:
+            try:
+                imagem = Image.open(caminho)
+                texto = pytesseract.image_to_string(imagem, lang="por")
+            except Exception as e:
+                print(f"[Erro OCR] {arquivo.filename}: {e}")
+                continue
 
         try:
             data = extrair_valor(texto, "Data e Hora:")
