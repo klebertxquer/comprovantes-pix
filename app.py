@@ -21,21 +21,25 @@ def extrair_comprovantes():
     for arquivo in arquivos:
         caminho = os.path.join(UPLOAD_FOLDER, arquivo.filename)
         arquivo.save(caminho)
-
         texto = ""
+
+        ext = os.path.splitext(arquivo.filename.lower())[1]
         try:
-            if arquivo.filename.lower().endswith('.pdf'):
+            if ext == ".pdf":
                 with pdfplumber.open(caminho) as pdf:
                     for pagina in pdf.pages:
-                        texto += pagina.extract_text() or ""
-            elif arquivo.filename.lower().endswith(('.jpg', '.jpeg', '.png')):
-                imagem = Image.open(caminho)
-                texto = pytesseract.image_to_string(imagem)
+                        texto += pagina.extract_text()
+            elif ext in [".jpg", ".jpeg", ".png"]:
+                image = Image.open(caminho)
+                texto = pytesseract.image_to_string(image, lang="por")
             else:
-                print(f"Formato não suportado: {arquivo.filename}")
+                print(f"[Ignorado] Formato não suportado: {arquivo.filename}")
                 continue
         except PdfminerException as e:
-            print(f"Erro ao abrir PDF {arquivo.filename}: {e}")
+            print(f"[Ignorado PDF inválido] {arquivo.filename}: {e}")
+            continue
+        except Exception as e:
+            print(f"[Erro ao abrir arquivo] {arquivo.filename}: {e}")
             continue
 
         try:
@@ -43,7 +47,7 @@ def extrair_comprovantes():
             valor = extrair_valor(texto, "Valor:")
             pagador = extrair_valor(texto, "Nome:", pos=1)
             destinatario = extrair_valor(texto, "Nome:", pos=2)
-            inst_origem = extrair_valor(texto, "Instituição:", pos=1)
+            inst_origem = extrair_valor(texto, "Instituição:")
             inst_destino = extrair_valor(texto, "Instituição:", pos=2)
             id_tx = extrair_valor(texto, "ID da transação:")
             resultados.append({
@@ -55,19 +59,17 @@ def extrair_comprovantes():
                 "id": id_tx
             })
         except Exception as e:
-            print(f"Erro na extração: {e}")
+            print(f"[Erro extração] {arquivo.filename}: {e}")
             continue
 
     return jsonify(resultados)
 
 def extrair_valor(texto, chave, pos=1):
     linhas = [l for l in texto.split('\n') if chave in l]
-    if len(linhas) < pos:
+    if not linhas:
         return ""
     return linhas[pos - 1].replace(chave, "").strip()
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
