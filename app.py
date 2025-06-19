@@ -5,13 +5,14 @@ import pdfplumber
 import os
 import openpyxl
 
+# Caminho do idioma do Tesseract (certifique-se de ter por.traineddata baixado)
 os.environ["TESSDATA_PREFIX"] = "/opt/homebrew/share/"
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-RESULTADOS = []
+RESULTADOS = []  # Armazena os resultados para exibir e exportar
 
 @app.route("/")
 def index():
@@ -91,7 +92,16 @@ def limpar():
     RESULTADOS = []
     return render_template("index.html", resultados=RESULTADOS)
 
-from flask import Flask, request, render_template, jsonify, send_file
+def extrair_valor(texto, chave, pos=1):
+    linhas = texto.split('\n')
+    resultados = [l for l in linhas if chave.lower() in l.lower()]
+    if len(resultados) < pos:
+        return ""
+    try:
+        idx = linhas.index(resultados[pos - 1])
+        return linhas[idx + 1].strip() if idx + 1 < len(linhas) else ""
+    except Exception as e:
+        return ""
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
