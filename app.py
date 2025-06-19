@@ -1,10 +1,11 @@
-import os
-os.environ["TESSDATA_PREFIX"] = "/opt/homebrew/share/"  # Definido ANTES do pytesseract
-
 from flask import Flask, request, render_template, jsonify
 from PIL import Image
 import pytesseract
+import os
 import pdfplumber
+
+# Caminho para dados de idioma do Tesseract
+os.environ["TESSDATA_PREFIX"] = "/opt/homebrew/share/"
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -35,7 +36,11 @@ def extrair_comprovantes():
         else:
             try:
                 imagem = Image.open(caminho)
-                texto = pytesseract.image_to_string(imagem, lang="por")
+                try:
+                    texto = pytesseract.image_to_string(imagem, lang="por")
+                except:
+                    print(f"[Aviso] Falha com lang='por'. Usando lang='eng' em {arquivo.filename}")
+                    texto = pytesseract.image_to_string(imagem, lang="eng")
                 print(f"\n===== TEXTO EXTRAÍDO DE {arquivo.filename} =====")
                 print(texto)
             except Exception as e:
