@@ -26,7 +26,10 @@ def extrair_comprovantes():
                 for pagina in pdf.pages:
                     texto += pagina.extract_text()
         except PdfminerException as e:
-            print(f"Arquivo inválido: {arquivo.filename} — {e}")
+            print(f"[Ignorado] {arquivo.filename}: {e}")
+            continue
+        except Exception as e:
+            print(f"[Erro desconhecido] {arquivo.filename}: {e}")
             continue
 
         try:
@@ -46,7 +49,7 @@ def extrair_comprovantes():
                 "id": id_tx
             })
         except Exception as e:
-            print(f"Erro ao extrair dados: {arquivo.filename} — {e}")
+            print(f"[Erro extração] {arquivo.filename}: {e}")
             continue
 
     return jsonify(resultados)
@@ -61,5 +64,3 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
-
