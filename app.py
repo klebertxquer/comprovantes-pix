@@ -1,10 +1,10 @@
 from flask import Flask, request, render_template, jsonify
 from PIL import Image
 import pytesseract
-import os
 import pdfplumber
+import os
 
-# Caminho para dados de idioma do Tesseract
+# Define o caminho do idioma para o Tesseract
 os.environ["TESSDATA_PREFIX"] = "/opt/homebrew/share/"
 
 app = Flask(__name__)
@@ -25,6 +25,7 @@ def extrair_comprovantes():
         arquivo.save(caminho)
         texto = ""
 
+        # PDF
         if arquivo.filename.lower().endswith(".pdf"):
             try:
                 with pdfplumber.open(caminho) as pdf:
@@ -34,19 +35,16 @@ def extrair_comprovantes():
                 print(f"[Erro PDF] {arquivo.filename}: {e}")
                 continue
         else:
+            # Imagem (JPEG/PNG) com OCR
             try:
                 imagem = Image.open(caminho)
-                try:
-                    texto = pytesseract.image_to_string(imagem, lang="por")
-                except:
-                    print(f"[Aviso] Falha com lang='por'. Usando lang='eng' em {arquivo.filename}")
-                    texto = pytesseract.image_to_string(imagem, lang="eng")
-                print(f"\n===== TEXTO EXTRAÍDO DE {arquivo.filename} =====")
-                print(texto)
+                texto = pytesseract.image_to_string(imagem, lang="por")
+                print(f"\n[OCR {arquivo.filename}]\n{texto}\n")
             except Exception as e:
                 print(f"[Erro imagem] {arquivo.filename}: {e}")
                 continue
 
+        # Extrai campos do texto
         try:
             data = extrair_valor(texto, "Data e Hora:")
             valor = extrair_valor(texto, "Valor:")
@@ -79,5 +77,3 @@ def extrair_valor(texto, chave, pos=1):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
-
