@@ -4,7 +4,7 @@ import pytesseract
 import os
 import pdfplumber
 
-# Define o caminho do idioma para o Tesseract
+# Define o caminho de dados do Tesseract (necessário para lang="por")
 os.environ["TESSDATA_PREFIX"] = "/opt/homebrew/share/"
 
 app = Flask(__name__)
@@ -26,6 +26,7 @@ def extrair_comprovantes():
 
         texto = ""
 
+        # Processa PDFs
         if arquivo.filename.lower().endswith(".pdf"):
             try:
                 with pdfplumber.open(caminho) as pdf:
@@ -34,14 +35,20 @@ def extrair_comprovantes():
             except Exception as e:
                 print(f"[Erro PDF] {arquivo.filename}: {e}")
                 continue
+
+        # Processa imagens (JPEG, PNG, etc.)
         else:
             try:
                 imagem = Image.open(caminho)
                 texto = pytesseract.image_to_string(imagem, lang="por")
+                print(f"\n===== TEXTO EXTRAÍDO DE {arquivo.filename} =====")
+                print(texto)
+                print("===============================================\n")
             except Exception as e:
                 print(f"[Erro imagem] {arquivo.filename}: {e}")
                 continue
 
+        # Extração de campos
         try:
             data = extrair_valor(texto, "Data e Hora:")
             valor = extrair_valor(texto, "Valor:")
@@ -59,6 +66,7 @@ def extrair_comprovantes():
                 "instituicoes": f"{inst_origem} → {inst_destino}",
                 "id": id_tx
             })
+
         except Exception as e:
             print(f"[Erro extração] {arquivo.filename}: {e}")
             continue
@@ -74,3 +82,4 @@ def extrair_valor(texto, chave, pos=1):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
