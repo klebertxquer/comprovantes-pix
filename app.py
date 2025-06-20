@@ -1,18 +1,18 @@
-from flask import Flask, request, render_template, jsonify, send_file
+from flask import Flask, request, render_template, send_file
 from PIL import Image
 import pytesseract
 import pdfplumber
 import os
 import openpyxl
 
-# Caminho do idioma do Tesseract (certifique-se de ter por.traineddata baixado)
+# Configuração do Tesseract
 os.environ["TESSDATA_PREFIX"] = "/opt/homebrew/share/"
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-RESULTADOS = []  # Armazena os resultados para exibir e exportar
+RESULTADOS = []
 
 @app.route("/")
 def index():
@@ -29,6 +29,7 @@ def extrair_comprovantes():
         arquivo.save(caminho)
         texto = ""
 
+        # Processar PDF
         if arquivo.filename.lower().endswith(".pdf"):
             try:
                 with pdfplumber.open(caminho) as pdf:
@@ -45,6 +46,7 @@ def extrair_comprovantes():
                 print(f"[Erro imagem] {arquivo.filename}: {e}")
                 continue
 
+        # Extrair campos
         try:
             data = extrair_valor(texto, "Data e Hora:")
             valor = extrair_valor(texto, "Valor:")
@@ -54,14 +56,15 @@ def extrair_comprovantes():
             inst_destino = extrair_valor(texto, "Instituição:", pos=2)
             id_tx = extrair_valor(texto, "ID da transação:")
 
-            RESULTADOS.append({
-                "data": data,
-                "valor": valor,
-                "pagador": pagador,
-                "destinatario": destinatario,
-                "instituicoes": f"{inst_origem} → {inst_destino}",
-                "id": id_tx
-            })
+            if data or valor or pagador or destinatario or id_tx:
+                RESULTADOS.append({
+                    "data": data,
+                    "valor": valor,
+                    "pagador": pagador,
+                    "destinatario": destinatario,
+                    "instituicoes": f"{inst_origem} → {inst_destino}",
+                    "id": id_tx
+                })
         except Exception as e:
             print(f"[Erro extração] {arquivo.filename}: {e}")
             continue
@@ -100,7 +103,7 @@ def extrair_valor(texto, chave, pos=1):
     try:
         idx = linhas.index(resultados[pos - 1])
         return linhas[idx + 1].strip() if idx + 1 < len(linhas) else ""
-    except Exception as e:
+    except Exception:
         return ""
 
 if __name__ == "__main__":
