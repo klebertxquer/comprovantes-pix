@@ -8,3 +8,25 @@ services:
     envVars:
       - key: PORT
         value: 10000
+# Leitor de Recibos Bancários (PIX, PDF, JPEG)
+
+Sistema Flask para ler e extrair dados de comprovantes de pagamentos via OCR (PDF, imagem) e exportar para Excel.
+
+## Funcionalidades
+- Upload de comprovantes PDF ou imagem (JPEG/PNG)
+- Extração de campos: Data, Valor, Pagador, Destinatário, Banco, ID da transação
+- Exportação automática para planilha Excel
+- Interface web simples e responsiva
+
+## Como usar localmente
+
+```bash
+# Clonar o repositório
+git clone https://github.com/klebertxquer/comprovantes-pix.git
+cd comprovantes-pix
+
+# Instalar dependências
+pip install -r requirements.txt
+
+# Rodar o servidor
+python app.py
